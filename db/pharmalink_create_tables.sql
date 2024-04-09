@@ -1,0 +1,146 @@
+CREATE TABLE IF NOT EXISTS Supplier (
+    SupplierID INT PRIMARY KEY,
+    Name varchar(75) NOT NULL,
+    Phone varchar(20) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS Medication (
+    DrugID INT PRIMARY KEY,
+    Name varchar(200) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS Patient (
+    patientID INT PRIMARY KEY,
+    FirstName varchar(30) NOT NULL,
+    LastName varchar(30) NOT NULL,
+    Sex char(1) NOT NULL,
+    Birthdate DATE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS Admin (
+    AdminID INT PRIMARY KEY,
+    FirstName varchar(30) NOT NULL,
+    LastName varchar(30) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS Supplier_Medication (
+    DrugID INT NOT NULL,
+    SupplierID INT NOT NULL,
+    PRIMARY KEY (DrugID, SupplierID),
+    CONSTRAINT fk_01 FOREIGN KEY (DrugID) REFERENCES Medication(DrugID)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_02 FOREIGN KEY (SupplierID) REFERENCES Supplier(SupplierID)
+        ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Doctor (
+    DoctorID INT PRIMARY KEY,
+    VerifiedBy INT NOT NULL,
+    FirstName varchar(30) NOT NULL,
+    LastName varchar(30) NOT NULL,
+    CONSTRAINT fk_03 FOREIGN KEY (VerifiedBy) REFERENCES Admin(AdminID)
+        ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Patient_Doctor (
+    DoctorID INT NOT NULL ,
+    PatientID INT NOT NULL,
+    PRIMARY KEY (DoctorID, PatientID),
+    CONSTRAINT fk_04 FOREIGN KEY (DoctorID) REFERENCES Doctor(DoctorID)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_05 FOREIGN KEY (PatientID) REFERENCES Patient(PatientID)
+        ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Ticket (
+    TicketID INT PRIMARY KEY ,
+    PatientID INT NOT NULL,
+    AdminID INT NOT NULL,
+    Text varchar(1000) NOT NULL,
+    Status varchar(20) NOT NULL,
+    Date_Created DATE NOT NULL DEFAULT(current_date),
+    CONSTRAINT fk_06 FOREIGN KEY (AdminID) REFERENCES Admin(AdminID)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_07 FOREIGN KEY (PatientID) REFERENCES Patient(PatientID)
+        ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Pharmacy (
+    PharmacyID INT PRIMARY KEY ,
+    Verified_By INT NOT NULL,
+    Name varchar(100) NOT NULL,
+    CONSTRAINT fk_08 FOREIGN KEY (Verified_By) REFERENCES Admin(AdminID)
+        ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Branch (
+    BranchID INT NOT NULL ,
+    PharmacyID INT NOT NULL ,
+    Street varchar(100) NOT NULL,
+    City varchar(100) NOT NULL,
+    Zip varchar(10) NOT NULL,
+    PRIMARY KEY (BranchID, PharmacyID),
+    CONSTRAINT fk_09 FOREIGN KEY (PharmacyID) REFERENCES Pharmacy(PharmacyID)
+        ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Pharmacist (
+    PharmacistID INT PRIMARY KEY ,
+    BranchID INT NOT NULL ,
+    PharmacyID INT NOT NULL ,
+    FirstName varchar(30) NOT NULL,
+    LastName varchar(30) NOT NULL,
+    CONSTRAINT fk_10 FOREIGN KEY (PharmacyID) REFERENCES Branch(PharmacyID)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_11 FOREIGN KEY (BranchID) REFERENCES Branch(BranchID)
+        ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Stock_Item (
+    BranchID INT NOT NULL ,
+    DrugID INT NOT NULL ,
+    PharmacyID INT NOT NULL ,
+    SKU INT NOT NULL,
+    Quantity INT NOT NULL,
+    PRIMARY KEY (BranchID, DrugID),
+    CONSTRAINT fk_12 FOREIGN KEY (PharmacyID) REFERENCES Pharmacy(PharmacyID)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_13 FOREIGN KEY (DrugID) REFERENCES Medication(DrugID)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_14 FOREIGN KEY (BranchID) REFERENCES Branch(BranchID)
+        ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Order_Item (
+    PharmacistID INT NOT NULL ,
+    DrugID INT NOT NULL ,
+    BranchID INT NOT NULL ,
+    PRIMARY KEY (PharmacistID, DrugID, BranchID),
+    CONSTRAINT fk_15 FOREIGN KEY (PharmacistID) REFERENCES Pharmacist(PharmacistID)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_16 FOREIGN KEY (DrugID) REFERENCES Stock_Item(DrugID)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_17 FOREIGN KEY (BranchID) REFERENCES Stock_Item(BranchID)
+        ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Prescription (
+    PrescriptionID INT NOT NULL ,
+    PrescribedBy INT NOT NULL ,
+    PatientID INT NOT NULL ,
+    BranchID INT NOT NULL ,
+    Dosage varchar(200) NOT NULL ,
+    Status varchar(20) NOT NULL ,
+    PrescribedDate DATE NOT NULL DEFAULT (current_date),
+    PrescribedExpiration DATE NOT NULL ,
+    DrugID INT NOT NULL ,
+    PRIMARY KEY (PrescriptionID, PatientID),
+    CONSTRAINT fk_18 FOREIGN KEY (PrescribedBy) REFERENCES Doctor(DoctorID)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_19 FOREIGN KEY (PatientID) REFERENCES Patient(PatientID)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_20 FOREIGN KEY (BranchID) REFERENCES Branch(BranchID)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_21 FOREIGN KEY (DrugID) REFERENCES Medication(DrugID)
+        ON DELETE RESTRICT ON UPDATE CASCADE
+);
