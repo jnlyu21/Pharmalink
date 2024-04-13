@@ -1,3 +1,4 @@
+
 CREATE TABLE IF NOT EXISTS Supplier (
     SupplierID INT PRIMARY KEY,
     Name varchar(75) NOT NULL,
@@ -129,6 +130,7 @@ CREATE TABLE IF NOT EXISTS Prescription (
     PrescriptionID INT NOT NULL ,
     PrescribedBy INT NOT NULL ,
     PatientID INT NOT NULL ,
+    PharmacyID INT NOT NULL,
     BranchID INT NOT NULL ,
     Dosage varchar(200) NOT NULL ,
     Status varchar(20) NOT NULL ,
@@ -143,6 +145,7 @@ CREATE TABLE IF NOT EXISTS Prescription (
     CONSTRAINT fk_20 FOREIGN KEY (BranchID) REFERENCES Branch(BranchID)
         ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT fk_21 FOREIGN KEY (DrugID) REFERENCES Medication(DrugID)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_22 FOREIGN KEY (PharmacyID) REFERENCES Pharmacy(PharmacyID)
         ON DELETE RESTRICT ON UPDATE CASCADE
 );
-
