@@ -35,12 +35,12 @@ def create_app():
     # Import the various Beluprint Objects
     from src.patient.patient import patient
     from src.doctor.doctor  import doctor
-    from src.pharmacy.pharmacy import pharmacy
+    from src.pharmacist.pharmacist import pharmacist
 
     # Register the routes from each Blueprint with the app object
     # and give a url prefix to each
     app.register_blueprint(patient,   url_prefix='/p')
     app.register_blueprint(doctor,    url_prefix='/d')
-    app.register_blueprint(pharmacy, url_prefix='/ph')
+    app.register_blueprint(pharmacist, url_prefix='/ph')
     # Don't forget to return the app object
     return app
