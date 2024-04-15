@@ -43,6 +43,6 @@ def create_app():
     app.register_blueprint(patient,   url_prefix='/p')
     app.register_blueprint(doctor,    url_prefix='/d')
     app.register_blueprint(pharmacist, url_prefix='/ph')
-    app.register_blueprint(dropdowns, url_prefix='dr')
+    app.register_blueprint(dropdowns, url_prefix='/dr')
     # Don't forget to return the app object
     return app

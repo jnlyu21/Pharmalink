@@ -102,7 +102,7 @@ def check_drug_availability(pharmacy_id, branch_id, drug_id):
         return jsonify({"error": str(e)}), 500
 
 # When a pharmacist fulfills an order, the quantity of the drug must be deducted from the branch's stock
-@pharmacist.route('/stock_deduct/<int:pharmacy_id>/<int:branch_id>/<int:drug_id', methods=['PUT'])
+@pharmacist.route('/stock_deduct/<int:pharmacy_id>/<int:branch_id>/<int:drug_id>', methods=['PUT'])
 def deduct_drug_stock(pharmacy_id, branch_id, drug_id):
     try:
         the_data = request.json
