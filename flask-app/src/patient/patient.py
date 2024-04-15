@@ -48,7 +48,6 @@ def get_patient_doctors(patient_id):
         cursor.execute(query)
         results = cursor.fetchall()
 
-        # Format the results
         doctors = [
             {
                 'Doctor ID': result[0],
@@ -144,4 +143,79 @@ def delete_doctor_patient_relationship(patient_id, doctor_id):
     
     except Exception as e:
         db.get_db().rollback()
+        return jsonify({'error': str(e)}), 500
+
+# Allow patient to create a ticket
+@patient.route('/tickets', methods=['POST'])
+def create_ticket():
+    # Parse json
+    data = request.get_json()
+    current_app.logger.info(data)
+
+    # Extract variables
+    patient_id = data.get('patient_id')
+    text = data.get('text')
+    status = data.get('status', 'Open') 
+
+    # Validate the input data
+    if not all([patient_id, text]):
+        return jsonify({'message': 'Missing required information for creating a ticket'}), 400
+
+    try:
+        cursor = db.get_db().cursor()
+
+        # Generate random adminid to assign ticket to
+        cursor.execute("SELECT AdminID FROM Admin ORDER BY RAND() LIMIT 1")
+        random_admin = cursor.fetchone()
+        if not random_admin:
+            return jsonify({'message': 'No admins available to assign the ticket'}), 500
+        
+        admin_id = random_admin[0]
+
+        # Make query w/ randomly generated adminid
+        query = f"INSERT INTO Ticket (PatientID, AdminID, Text, Status, Date_Created) VALUES ('{patient_id}', '{admin_id}', '{text}', '{status}', CURRENT_DATE())"
+        current_app.logger.info(query)
+
+        cursor.execute(query)
+        db.get_db().commit()
+        return jsonify({'message': 'Ticket created successfully'}), 201
+
+    except Exception as e:
+        db.get_db().rollback()
+        current_app.logger.error(f"Failed to create ticket: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# Allow patients to edit text of open tickets
+@patient.route('/tickets/<int:ticket_id>', methods=['PUT'])
+def update_ticket(ticket_id):
+    # Parse json
+    data = request.get_json()
+    current_app.logger.info(data)
+
+    # Extract text data
+    new_text = data.get('text')
+    if not new_text:
+        return jsonify({'message': 'No new text provided'}), 400
+
+    try:
+        cursor = db.get_db().cursor()
+
+        # Check status of ticket, only open tickets can be edited
+        cursor.execute(f"SELECT Status FROM Ticket WHERE TicketID = {ticket_id}")
+        ticket = cursor.fetchone()
+        if not ticket:
+            return jsonify({'message': 'Ticket not found'}), 404
+        if ticket[0] != 'Open':
+            return jsonify({'message': 'Only open tickets can be updated'}), 400
+
+        # Update the ticket text
+        update_query = f"UPDATE Ticket SET Text = '{new_text}' WHERE TicketID = {ticket_id} AND Status = 'Open'"
+        cursor.execute(update_query)
+        db.get_db().commit()
+
+        return jsonify({'message': 'Ticket text updated successfully'}), 200
+    
+    except Exception as e:
+        db.get_db().rollback()
+        current_app.logger.error(f"Failed to update ticket: {e}")
         return jsonify({'error': str(e)}), 500
