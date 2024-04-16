@@ -153,4 +153,35 @@ def add_pharmacist():
         db.get_db().rollback()
         return jsonify({"error": str(e)}), 500
     
+
+#View the specific prescription ID
+@pharmacist.route('/prescriptions/<int:prescription_id>', methods=['GET'])
+def view_prescription(prescription_id):
+    try:
+        cursor = db.get_db().cursor()
+        query = f'SELECT * FROM Prescription WHERE PrescriptionID = "{prescription_id}"'
+        cursor.execute(query)
+        prescription = cursor.fetchone()
+
+        if prescription:
+            prescription_data = {
+                'Prescription ID': prescription[0],
+                'Prescribed By': prescription[1],
+                'Patient ID': prescription[2],
+                'Pharmacy ID': prescription[3],
+                'Branch ID': prescription[4],
+                'Dosage': prescription[5],
+                'Status': prescription[6],
+                'Prescribed Date': prescription[7].strftime('%Y-%m-%d'),
+                'Prescribed Expiration': prescription[8].strftime('%Y-%m-%d'),
+                'Drug ID': prescription[9]
+            }
+            return jsonify(prescription_data), 200
+        else:
+            return jsonify({"error": "Prescription not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+
 # TODO: allow pharmacist to make an order, add quantity to current drug's quantity. If drug is not in Stock_Item table for branch, add it and make a new randomly generated SKU (unique)
