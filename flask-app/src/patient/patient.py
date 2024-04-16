@@ -64,33 +64,60 @@ def get_patient_doctors(patient_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
-# Get list of prescriptions, allow optional filtering based on status of prescription
 @patient.route('/prescriptions/<int:patient_id>', methods=['GET'])
 def get_patient_prescriptions(patient_id):
-    # Retrieve optional status
+    # Retrieve optional status from the query parameters
     status = request.args.get('status', None)
     
     try:
         cursor = db.get_db().cursor()
         
-        query = f"SELECT PrescriptionID, PharmacyID, BranchID, DrugID, Dosage, Status, PrescribedDate, PrescribedExpiration FROM Prescription WHERE PatientID = '{patient_id}'"
+        # Extended query to join with Pharmacy, Medication, Branch, and Doctor tables for more detailed info
+        query = f"""
+        SELECT 
+            p.PrescriptionID, 
+            ph.Name as PharmacyName, 
+            b.Street as BranchAddress, 
+            m.Name as MedicationName,
+            p.Dosage, 
+            p.Status, 
+            DATE(p.PrescribedDate) as PrescribedDate, 
+            DATE(p.PrescribedExpiration) as PrescribedExpiration,
+            CONCAT(d.FirstName, ' ', d.LastName) as DoctorName
+        FROM 
+            Prescription p
+        INNER JOIN 
+            Pharmacy ph ON p.PharmacyID = ph.PharmacyID
+        INNER JOIN 
+            Medication m ON p.DrugID = m.DrugID
+        INNER JOIN 
+            Branch b ON p.BranchID = b.BranchID AND b.PharmacyID = p.PharmacyID
+        INNER JOIN 
+            Doctor d ON p.PrescribedBy = d.DoctorID
+        WHERE 
+            p.PatientID = {patient_id}
+        """
+
         
+        # Adding filtering by status if provided
         if status:
-            query += f" AND Status = '{status}'"
+            query += f" AND p.Status = '{status}'"
         
         cursor.execute(query)
         results = cursor.fetchall()
         
+        # Prepare data to return as JSON
         prescriptions = [
             {
                 'Prescription ID': result[0],
-                'Pharmacy ID': result[1],
-                'Branch ID': result[2],
-                'Drug ID': result[3],
+                'Pharmacy Name': result[1],
+                'Branch Address': result[2],
+                'Medication Name': result[3],
                 'Dosage': result[4],
                 'Status': result[5],
-                'Prescribed Date': result[6].strftime('%Y-%m-%d'),
-                'Expiration Date': result[7].strftime('%Y-%m-%d')
+                'Prescribed Date': result[6],
+                'Expiration Date': result[7],
+                'Prescribing Doctor': result[8]
             } for result in results
         ]
         
