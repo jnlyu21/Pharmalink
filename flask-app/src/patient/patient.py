@@ -6,6 +6,7 @@ from src import db
 
 patient = Blueprint('patient', __name__)
 
+
 # Add a patient
 @patient.route('/patient', methods=['POST'])
 def add_new_patient():
@@ -37,8 +38,9 @@ def add_new_patient():
         current_app.logger.error(f"Failed to add patient: {e}")
         return jsonify({'error': str(e)}), 500
 
+
 # Get list of doctors a patient is seeing 
-@patient.route('/patient/<int:patient_id>/doctors', methods=['GET'])
+@patient.route('/patient/<int:patient_id>', methods=['GET'])
 def get_patient_doctors(patient_id):
     try:
         cursor = db.get_db().cursor()
@@ -64,7 +66,7 @@ def get_patient_doctors(patient_id):
         return jsonify({"error": str(e)}), 500
     
 # Get list of prescriptions, allow optional filtering based on status of prescription
-@patient.route('/patient/<int:patient_id>/prescriptions', methods=['GET'])
+@patient.route('/prescriptions/<int:patient_id>', methods=['GET'])
 def get_patient_prescriptions(patient_id):
     # Retrieve optional status
     status = request.args.get('status', None)
@@ -146,14 +148,14 @@ def delete_doctor_patient_relationship(patient_id, doctor_id):
         return jsonify({'error': str(e)}), 500
 
 # Allow patient to create a ticket
-@patient.route('/tickets', methods=['POST'])
-def create_ticket():
+@patient.route('/tickets/<int:patient_id>', methods=['POST'])
+def create_ticket(patient_id):
     # Parse json
     data = request.get_json()
     current_app.logger.info(data)
 
     # Extract variables
-    patient_id = data.get('patient_id')
+    patient_id = patient_id
     text = data.get('text')
     status = data.get('status', 'Open') 
 

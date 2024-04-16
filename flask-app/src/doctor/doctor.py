@@ -6,96 +6,6 @@ from src import db
 
 doctor = Blueprint('doctor', __name__)
 
-
-# Add a doctor to the database
-@doctor.route('/doctor', methods=['POST'])
-def add_new_doctor():
-    
-    # Parse req
-    the_data = request.json
-    current_app.logger.info(the_data)
-
-    # Extract vars
-    first_name = the_data['first_name']
-    last_name = the_data['last_name']
-    verified_by = the_data['verified_by']  
-
-    # Query
-    query = 'INSERT INTO Doctor (FirstName, LastName, VerifiedBy) VALUES ("'
-    query += first_name + '", "'
-    query += last_name + '", "'
-    query += str(verified_by) + '")'
-    current_app.logger.info(query)
-
-    # Executing insert
-    cursor = db.get_db().cursor()
-    cursor.execute(query)
-    db.get_db().commit()
-    
-    return 'Doctor added successfully!'
-
-# Delete a doctor from the database
-@doctor.route('/doctor/<int:doctor_id>', methods=['DELETE'])
-def delete_doctor(doctor_id):
-    cursor = db.get_db().cursor()
-
-    # Cannot delete if doctor has prescriptions
-    check_query = f'SELECT COUNT(*) FROM Prescription WHERE PrescribedBy = "{doctor_id}"'
-    cursor.execute(check_query)
-    if cursor.fetchone()[0] > 0:
-        return 'Cannot delete doctor with active prescriptions.', 400
-    
-    # Cannot delete if doctor has patients
-    check_query = f'SELECT COUNT(*) FROM Patient_Doctor WHERE DoctorId = "{doctor_id}"'
-    cursor.execute(check_query)
-    if cursor.fetchone()[0] > 0:
-        return 'Cannot delete doctor with patients.', 400
-
-    try:
-        # Proceed with deletion if no dependencies
-        delete_query = f'DELETE FROM Doctor WHERE DoctorID = "{doctor_id}"'
-        cursor.execute(delete_query)
-        db.get_db().commit()
-        return 'Doctor successfully deleted', 200
-    except Exception as e:
-        db.get_db().rollback()
-        return str(e), 500
-    
-
-# Update doctor information in the database
-@doctor.route('/doctor/<int:doctor_id>', methods=['PUT'])
-def update_doctor(doctor_id):
-    the_data = request.json
-    current_app.logger.info(the_data)
-
-    # Extracting variables
-    first_name = the_data.get('first_name', '')
-    last_name = the_data.get('last_name', '')
-    verified_by = the_data.get('verified_by', '')
-
-    # Query
-    query = f'UPDATE Doctor SET '
-    updates = []
-    if first_name:
-        updates.append(f'FirstName = "{first_name}"')
-    if last_name:
-        updates.append(f'LastName = "{last_name}"')
-    if verified_by:
-        updates.append(f'VerifiedBy = "{verified_by}"')
-
-    query += ', '.join(updates)
-    query += f' WHERE DoctorID = "{doctor_id}"'
-    current_app.logger.info(query)
-
-    try:
-        cursor = db.get_db().cursor()
-        cursor.execute(query)
-        db.get_db().commit()
-        return 'Doctor information updated successfully', 200
-    except Exception as e:
-        db.get_db().rollback()
-        return str(e), 500
-
 # Get a doctor's patients
 @doctor.route('/doctor/<int:doctor_id>/patients', methods=['GET'])
 def get_doctors_patients(doctor_id):
@@ -119,8 +29,14 @@ def get_doctors_patients(doctor_id):
     return jsonify(patients), 200
 
 # View doctor's prescriptions for a certain patient
-@doctor.route('/prescriptions/<int:doctor_id>/<int:patient_id>', methods=['GET'])
-def get_prescriptions_for_patient(doctor_id, patient_id):
+@doctor.route('/prescriptions/<int:patient_id>', methods=['GET']) #can also be used by patients to view their prescriptions
+def get_prescriptions_for_patient(patient_id):
+    the_data = request.json
+    current_app.logger.info(the_data)
+
+    # Extracting variables from the request
+    doctor_id = the_data['doctor_id']
+
     try:
         cursor = db.get_db().cursor()
 
@@ -155,14 +71,14 @@ def get_prescriptions_for_patient(doctor_id, patient_id):
         return jsonify({"error": str(e)}), 500
 
 # Create a prescription for a patient
-@doctor.route('/prescriptions', methods=['POST'])
-def create_prescription():
+@doctor.route('/prescriptions/<int:patient_id>', methods=['POST'])
+def create_prescription(patient_id):
     the_data = request.json
     current_app.logger.info(the_data)
 
     # Extracting variables from the request
     doctor_id = the_data['doctor_id']
-    patient_id = the_data['patient_id']
+    patient_id = patient_id
     pharmacy_id = the_data['pharmacy_id']
     branch_id = the_data['branch_id']
     drug_id = the_data['drug_id']
@@ -185,7 +101,7 @@ def create_prescription():
         return str(e), 500
 
 # Allow doctor to cancel a prescription    
-@doctor.route('/prescriptions/<int:prescription_id>/cancel', methods=['PUT'])
+@doctor.route('/prescriptions/<int:prescription_id>', methods=['PUT'])
 def cancel_prescription(prescription_id):
     try:
         cursor = db.get_db().cursor()

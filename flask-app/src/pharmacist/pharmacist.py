@@ -7,34 +7,9 @@ from src import db
 
 pharmacist = Blueprint('pharmacist', __name__)
 
-
-# Add pharmacist
-@pharmacist.route('/pharmacist', methods=['POST'])
-def add_pharmacist():
-    try:
-        # Collecting data 
-        the_data = request.json
-        branch_id = the_data['branch_id']
-        pharmacy_id = the_data['pharmacy_id']
-        first_name = the_data['first_name']
-        last_name = the_data['last_name']
-
-        # Construct query
-        query = 'INSERT INTO Pharmacist (BranchID, PharmacyID, FirstName, LastName) VALUES ('
-        query += f'"{branch_id}", "{pharmacy_id}", "{first_name}", "{last_name}")'
-
-        # Execute
-        cursor = db.get_db().cursor()
-        cursor.execute(query)
-        db.get_db().commit()
-        return 'Pharmacist added successfully!', 201
-
-    except Exception as e:
-        db.get_db().rollback()
-        return jsonify({"error": str(e)}), 500
     
 # Allow pharmacist to change prescription status to complete
-@pharmacist.route('/prescriptions/<int:prescription_id>/complete', methods=['PUT'])
+@pharmacist.route('/prescriptions/<int:prescription_id>', methods=['PUT'])
 def complete_prescription(prescription_id):
     try:
         # Check if the prescription is currently active
@@ -82,7 +57,7 @@ def check_drug_availability(pharmacy_id, branch_id, drug_id):
         return jsonify({"error": str(e)}), 500
 
 # When a pharmacist fulfills an order, the quantity of the drug must be deducted from the branch's stock
-@pharmacist.route('/stock_deduct/<int:pharmacy_id>/<int:branch_id>/<int:drug_id>', methods=['PUT'])
+@pharmacist.route('/stock/<int:pharmacy_id>/<int:branch_id>/<int:drug_id>', methods=['PUT'])
 def deduct_drug_stock(pharmacy_id, branch_id, drug_id):
     try:
         the_data = request.json
@@ -99,7 +74,7 @@ def deduct_drug_stock(pharmacy_id, branch_id, drug_id):
         current_quantity = result[0]
 
         if current_quantity < used_quantity:
-            return jsonify({'message': f'We do not have sufficient quantity of the medication to fulfill this order'})
+            return jsonify({'message': 'We do not have sufficient quantity of the medication to fulfill this order'})
         
         new_quantity = current_quantity - used_quantity
         update_query = f'UPDATE Stock_Item SET Quantity = "{new_quantity}" WHERE PharmacyID = "{pharmacy_id}" AND BranchID = "{branch_id}" AND DrugID = "{drug_id}"'
