@@ -12,7 +12,7 @@ pharmacist = Blueprint('pharmacist', __name__)
 def get_prescriptions(pharmacy_id, branch_id):
     try:
         cursor = db.get_db().cursor()
-        query = f'SELECT PrescriptionID, PatientID, DrugID, Quantity, Status FROM Prescription WHERE PharmacyID = "{pharmacy_id}" AND BranchID = "{branch_id}"'
+        query = f'SELECT PrescriptionID, PatientID, DrugID, Status FROM Prescription WHERE PharmacyID = "{pharmacy_id}" AND BranchID = "{branch_id}"'
         cursor.execute(query)
         results = cursor.fetchall()
 
@@ -21,8 +21,7 @@ def get_prescriptions(pharmacy_id, branch_id):
                 'Prescription ID': result[0],
                 'Patient ID': result[1],
                 'Drug ID': result[2],
-                'Quantity': result[3],
-                'Status': result[4],
+                'Status': result[3],
             } for result in results
         ]
         return jsonify(prescriptions), 200
@@ -35,7 +34,7 @@ def get_all_pharmacists():
     try:
         cursor = db.get_db().cursor()
         cursor.execute(
-            "SELECT PharmacistID, BranchID, PharmacyID, FirstName, LastName FROM Pharamcist"
+            "SELECT PharmacistID, BranchID, PharmacyID, FirstName, LastName FROM Pharmacist"
         )
 
         row_headers = [x[0] for x in cursor.description]
