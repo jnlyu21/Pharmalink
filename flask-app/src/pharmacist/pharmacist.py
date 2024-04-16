@@ -7,6 +7,49 @@ from src import db
 
 pharmacist = Blueprint('pharmacist', __name__)
 
+#display all prescriptions for a specific branch
+@pharmacist.route('/prescriptions/<int:pharmacy_id>/<int:branch_id>', methods=['GET'])
+def get_prescriptions(pharmacy_id, branch_id):
+    try:
+        cursor = db.get_db().cursor()
+        query = f'SELECT PrescriptionID, PatientID, DrugID, Quantity, Status FROM Prescription WHERE PharmacyID = "{pharmacy_id}" AND BranchID = "{branch_id}"'
+        cursor.execute(query)
+        results = cursor.fetchall()
+
+        prescriptions = [
+            {
+                'Prescription ID': result[0],
+                'Patient ID': result[1],
+                'Drug ID': result[2],
+                'Quantity': result[3],
+                'Status': result[4],
+            } for result in results
+        ]
+        return jsonify(prescriptions), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Display information of all pharmacists
+@pharmacist.route('/pharmacist', methods=['GET'])
+def get_all_pharmacists():
+    try:
+        cursor = db.get_db().cursor()
+        cursor.execute(
+            "SELECT PharmacistID, BranchID, PharmacyID, FirstName, LastName FROM Pharamcist"
+        )
+
+        row_headers = [x[0] for x in cursor.description]
+        json_data = []
+        results = cursor.fetchall()
+        for result in results:
+            json_data.append(dict(zip(row_headers, result)))
+
+        response = make_response(jsonify(json_data), 200)
+        response.mimetype = 'application/json'
+        return response
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
     
 # Allow pharmacist to change prescription status to complete
 @pharmacist.route('/prescriptions/<int:prescription_id>', methods=['PUT'])
@@ -82,6 +125,31 @@ def deduct_drug_stock(pharmacy_id, branch_id, drug_id):
         db.get_db.commit()
 
         return jsonify({'message': 'Stock updated successfully.', 'New Quantity': new_quantity}), 200
+    except Exception as e:
+        db.get_db().rollback()
+        return jsonify({"error": str(e)}), 500
+    
+    # Add pharmacist
+@pharmacist.route('/pharmacist/<int:admin_id>', methods=['POST'])
+def add_pharmacist():
+    try:
+        # Collecting data 
+        the_data = request.json
+        branch_id = the_data['branch_id']
+        pharmacy_id = the_data['pharmacy_id']
+        first_name = the_data['first_name']
+        last_name = the_data['last_name']
+
+        # Construct query
+        query = 'INSERT INTO Pharmacist (BranchID, PharmacyID, FirstName, LastName) VALUES ('
+        query += f'"{branch_id}", "{pharmacy_id}", "{first_name}", "{last_name}")'
+
+        # Execute
+        cursor = db.get_db().cursor()
+        cursor.execute(query)
+        db.get_db().commit()
+        return 'Pharmacist added successfully!', 201
+
     except Exception as e:
         db.get_db().rollback()
         return jsonify({"error": str(e)}), 500
