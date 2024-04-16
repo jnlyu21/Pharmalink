@@ -44,7 +44,7 @@ def add_new_patient():
 def get_patient_doctors(patient_id):
     try:
         cursor = db.get_db().cursor()
-        query = f"SELECT d.DoctorID, d.FirstName, d.LastName, d.VerifiedBy FROM Doctor d " \
+        query = f"SELECT d.DoctorID, d.FirstName, d.LastName FROM Doctor d " \
                 f"JOIN Patient_Doctor pd ON d.DoctorID = pd.DoctorID " \
                 f"WHERE pd.PatientID = '{patient_id}'"
         cursor.execute(query)
@@ -54,8 +54,7 @@ def get_patient_doctors(patient_id):
             {
                 'Doctor ID': result[0],
                 'First Name': result[1],
-                'Last Name': result[2],
-                'Verified By': result[3]
+                'Last Name': result[2]
             } for result in results
         ]
 
