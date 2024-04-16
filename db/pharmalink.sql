@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS Supplier_Medication (
 );
 
 CREATE TABLE IF NOT EXISTS Doctor (
-    DoctorID INT PRIMARY KEY,
+    DoctorID INT PRIMARY KEY AUTO_INCREMENT,
     VerifiedBy INT NOT NULL,
     FirstName varchar(30) NOT NULL,
     LastName varchar(30) NOT NULL,
