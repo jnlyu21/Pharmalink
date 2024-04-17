@@ -68,7 +68,7 @@ def complete_prescription(prescription_id):
         update_query = f'UPDATE Prescription SET Status = "Complete" WHERE PrescriptionID = "{prescription_id}"'
         cursor.execute(update_query)
         db.get_db().commit()
-        return 'Prescription status updated to Complete.', 200
+        return 'status successfully updated', 200
     except Exception as e:
         db.get_db().rollback()
         return str(e), 500
@@ -179,6 +179,43 @@ def view_prescription(prescription_id):
             return jsonify(prescription_data), 200
         else:
             return jsonify({"error": "Prescription not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+#check medication name given drug id
+@pharmacist.route('/medication/<int:drug_id>', methods=['GET'])
+def get_drug_name(drug_id):
+    try:
+        cursor = db.get_db().cursor()
+        query = f'SELECT Name FROM Medication WHERE DrugID = "{drug_id}"'
+        cursor.execute(query)
+        result = cursor.fetchone()
+
+        if not result:
+            return jsonify({'message': 'Drug not found'}), 404
+        drug_name = result[0]
+        return jsonify({'Drug ID': drug_id, 'Drug Name': drug_name}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+#get all prescriptions
+@pharmacist.route('/prescriptions/all', methods=['GET'])
+def get_all_prescriptions():
+    try:
+        cursor = db.get_db().cursor()
+        cursor.execute(
+            "SELECT * FROM Prescription"
+        )
+
+        row_headers = [x[0] for x in cursor.description]
+        json_data = []
+        results = cursor.fetchall()
+        for result in results:
+            json_data.append(dict(zip(row_headers, result)))
+
+        response = make_response(jsonify(json_data), 200)
+        response.mimetype = 'application/json'
+        return response
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
