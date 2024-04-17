@@ -1,5 +1,6 @@
 
 # Import statements
+import random
 from flask import Blueprint, request, jsonify, make_response, current_app
 import json
 from src import db
@@ -102,7 +103,7 @@ def get_doctors_patients(doctor_id):
 
     return jsonify(patients), 200
 
-# View doctor's prescriptions for a certain patient
+#view doctor's prescriptions for a certain patient
 @doctor.route('/prescriptions/<int:patient_id>', methods=['GET']) #can also be used by patients to view their prescriptions
 def get_prescriptions_for_patient(patient_id):
     the_data = request.json
@@ -114,8 +115,8 @@ def get_prescriptions_for_patient(patient_id):
     try:
         cursor = db.get_db().cursor()
 
-        query = 'SELECT p.PrescriptionID, ph.Name as PharmacyName, b.BranchID, p.Dosage, p.Status, '
-        query += 'p.PrescribedDate, p.PrescribedExpiration, m.Name as MedicationName '
+        query = 'SELECT p.PrescriptionID, ph.Name as PharmacyName, p.BranchID, p.Dosage, p.Status, '
+        query += 'p.PrescribedDate, p.PrescribedExpiration, m.Name as MedicationName, p.DrugID '
         query += 'FROM Prescription p '
         query += 'JOIN Pharmacy ph ON p.PharmacyID = ph.PharmacyID '
         query += 'JOIN Medication m ON p.DrugID = m.DrugID '
@@ -133,7 +134,8 @@ def get_prescriptions_for_patient(patient_id):
                 'Status': result[4],
                 'Prescribed Date': result[5].strftime('%Y-%m-%d'),
                 'Expiration Date': result[6].strftime('%Y-%m-%d'),
-                'Medication Name': result[7]
+                'Medication Name': result[7],
+                'Drug ID': result[8]
             } for result in results
         ]
 
@@ -143,6 +145,7 @@ def get_prescriptions_for_patient(patient_id):
     except Exception as e:
         db.get_db().rollback()
         return jsonify({"error": str(e)}), 500
+
 
 # Create a prescription for a patient
 @doctor.route('/prescriptions/<int:patient_id>', methods=['POST'])
@@ -158,18 +161,51 @@ def create_prescription(patient_id):
     drug_id = the_data['drug_id']
     dosage = the_data['dosage']
     status = the_data['status']
+    prescription_id = random.randint(100000, 999999)  # Random 6-digit number
     prescribed_date = the_data['prescribed_date']
     prescribed_expiration = the_data['prescribed_expiration']
 
     # Constructing the query
-    query = 'INSERT INTO Prescription (PrescribedBy, PatientID, PharmacyID, BranchID, DrugID, Dosage, Status, PrescribedDate, PrescribedExpiration) VALUES ('
-    query += f'"{doctor_id}", "{patient_id}", "{pharmacy_id}", "{branch_id}", "{drug_id}", "{dosage}", "{status}", "{prescribed_date}", "{prescribed_expiration}")'
+    query = 'INSERT INTO Prescription (PrescriptionID, PrescribedBy, PatientID, PharmacyID, BranchID, Dosage, Status, PrescribedExpiration, DrugID) VALUES ('
+    query += f'"{prescription_id}", "{doctor_id}", "{patient_id}", "{pharmacy_id}", "{branch_id}", "{dosage}", "{status}", "{prescribed_expiration}", "{drug_id}")'
 
     try:
         cursor = db.get_db().cursor()
         cursor.execute(query)
         db.get_db().commit()
         return 'Prescription successfully created', 201
+    except Exception as e:
+        db.get_db().rollback()
+        return str(e), 500
+
+# Allow doctor to update a prescription given all new info
+@doctor.route('/prescriptions/<int:prescription_id>', methods=['PUT'])
+def update_prescription(prescription_id):
+    the_data = request.json
+    current_app.logger.info(the_data)
+
+    # Extracting variables from the request
+    dosage = the_data['dosage']
+    status = the_data['status']
+    prescribed_expiration = the_data['prescribed_expiration']
+
+    # Constructing the query
+    query = 'UPDATE Prescription SET '
+    updates = []
+    if dosage:
+        updates.append(f'Dosage = "{dosage}"')
+    if status:
+        updates.append(f'Status = "{status}"')
+    if prescribed_expiration:
+        updates.append(f'PrescribedExpiration = "{prescribed_expiration}"')
+    query += ', '.join(updates)
+    query += f' WHERE PrescriptionID = "{prescription_id}"'
+
+    try:
+        cursor = db.get_db().cursor()
+        cursor.execute(query)
+        db.get_db().commit()
+        return 'Prescription successfully updated', 200
     except Exception as e:
         db.get_db().rollback()
         return str(e), 500

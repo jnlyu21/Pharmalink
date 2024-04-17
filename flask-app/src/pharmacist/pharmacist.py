@@ -1,5 +1,6 @@
 
 # import statements
+import random
 from flask import Blueprint, request, jsonify, make_response, current_app
 import json
 from src import db
@@ -72,31 +73,28 @@ def complete_prescription(prescription_id):
     except Exception as e:
         db.get_db().rollback()
         return str(e), 500
-
-# Allow pharmacist to view stock of current branch
-@pharmacist.route('/stock/<int:pharmacy_id>/<int:branch_id>/<int:drug_id>', methods=['GET'])
-def check_drug_availability(pharmacy_id, branch_id, drug_id):
+    
+#Allow pharmacist to view all stock of a specific branch joining with medication table
+@pharmacist.route('/stock/<int:pharmacy_id>/<int:branch_id>', methods=['GET'])
+def get_stock(pharmacy_id, branch_id):
     try:
         cursor = db.get_db().cursor()
-        # Query to check availability of certain drugid based on pharmacy and branch
-        query = f'SELECT Quantity FROM Stock_Item WHERE PharmacyID = "{pharmacy_id}" AND BranchID = "{branch_id}" AND DrugID = "{drug_id}"'
+        query = f'SELECT Stock_Item.DrugID, Quantity, SKU, Name FROM Stock_Item JOIN Medication ON Stock_Item.DrugID = Medication.DrugID WHERE PharmacyID = "{pharmacy_id}" AND BranchID = "{branch_id}"'
         cursor.execute(query)
-        result = cursor.fetchone()
+        results = cursor.fetchall()
 
-        if not result:
-            return jsonify({'message': 'Drug not found in this branch or pharmacy.'}), 404
-        quantity = result[0]
-        
-        availability = "Available" if quantity > 0 else "Not Available"
-        return jsonify({
-            'Pharmacy ID': pharmacy_id,
-            'Branch ID': branch_id,
-            'Drug ID': drug_id,
-            'Quantity': quantity,
-            'Availability': availability
-        }), 200
+        stock = [
+            {
+                'Drug ID': result[0],
+                'Quantity': result[1],
+                'SKU': result[2],
+                'Name': result[3]
+            } for result in results
+        ]
+        return jsonify(stock), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 # When a pharmacist fulfills an order, the quantity of the drug must be deducted from the branch's stock
 @pharmacist.route('/stock/<int:pharmacy_id>/<int:branch_id>/<int:drug_id>', methods=['PUT'])
@@ -219,6 +217,38 @@ def get_all_prescriptions():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+#allow pharmacist to create a new order
+@pharmacist.route('/stock/<int:pharmacy_id>/<int:branch_id>/<int:drug_id>', methods=['POST'])
+def create_order(pharmacy_id, branch_id, drug_id):
+    try:
+        the_data = request.json
+        quantity = the_data['quantity']
+
+        cursor = db.get_db().cursor()
+        
+        # Check if the drug is already in stock
+        check_query = f'SELECT Quantity FROM Stock_Item WHERE PharmacyID = "{pharmacy_id}" AND BranchID = "{branch_id}" AND DrugID = "{drug_id}"'
+        cursor.execute(check_query)
+        result = cursor.fetchone()
+
+        if result:
+            # Drug is already in stock, add the quantity to the current quantity
+            current_quantity = result[0]
+            new_quantity = current_quantity + quantity
+            update_query = f'UPDATE Stock_Item SET Quantity = "{new_quantity}" WHERE PharmacyID = "{pharmacy_id}" AND BranchID = "{branch_id}" AND DrugID = "{drug_id}"'
+            cursor.execute(update_query)
+            db.get_db().commit()
+            return jsonify({'message': 'Order successfully added to stock.', 'New Quantity': new_quantity}), 200
+        else:
+            # Drug is not in stock, add it to stock
+            sku = random.randint(100000, 999999)
+            insert_query = f'INSERT INTO Stock_Item (PharmacyID, BranchID, DrugID, Quantity, SKU) VALUES ("{pharmacy_id}", "{branch_id}", "{drug_id}", "{quantity}", "{sku}")'
+            cursor.execute(insert_query)
+            db.get_db().commit()
+            return jsonify({'message': 'Order successfully added to stock.'}), 200
+    except Exception as e:
+        db.get_db().rollback()
+        return jsonify({"error": str(e)}), 500
 
 
 # TODO: allow pharmacist to make an order, add quantity to current drug's quantity. If drug is not in Stock_Item table for branch, add it and make a new randomly generated SKU (unique)
