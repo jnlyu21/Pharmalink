@@ -2828,3 +2828,5 @@ INSERT INTO Supplier_Medication (DrugID, SupplierID) VALUES (1, 14);
 INSERT INTO Supplier_Medication (DrugID, SupplierID) VALUES (34, 16);
 INSERT INTO Supplier_Medication (DrugID, SupplierID) VALUES (22, 20);
 INSERT INTO Supplier_Medication (DrugID, SupplierID) VALUES (19, 12);
+
+SELECT * FROM Ticket WHERE PatientID = 2;
