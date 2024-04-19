@@ -6461,3 +6461,4 @@ INSERT INTO Supplier_Medication (DrugID, SupplierID) VALUES (4, 21);
 INSERT INTO Supplier_Medication (DrugID, SupplierID) VALUES (22, 8);
 INSERT INTO Supplier_Medication (DrugID, SupplierID) VALUES (32, 11);
 INSERT INTO Supplier_Medication (DrugID, SupplierID) VALUES (30, 6);
+
